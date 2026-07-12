@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traceur GPS Client</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: #f4f4f9; color: #333; }
+        .box { border: 1px solid #ccc; padding: 20px; display: inline-block; border-radius: 8px; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        #status { font-weight: bold; color: #2ecc71; }
+        button { padding: 10px 20px; font-size: 16px; margin-top: 20px; cursor: pointer; border-radius: 5px; border: none; background: #3498db; color: white; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>Traceur GPS Connecté</h1>
+        <p>Statut : <span id="status">En attente d'activation...</span></p>
+        <div id="coordinates">Latitude: -, Longitude: -</div>
+        <button id="trackBtn" onclick="startTracking()">Activer le suivi GPS</button>
+    </div>
+
+    <script>
+        const statusText = document.getElementById('status');
+        const coordsText = document.getElementById('coordinates');
+        const trackBtn = document.getElementById('trackBtn');
+        
+        // Votre URL Render officielle configurée avec la bonne route
+        const SERVER_URL = 'https://onrender.com'; 
+
+        function sendLocationToServer(lat, lng) {
+            fetch(SERVER_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    deviceId: "iphone_francois", // Identifiant de votre téléphone
+                    latitude: lat,
+                    longitude: lng,
+                    mode: "driving",            // Profil par défaut (auto)
+                    destination: { lat: 45.5017, lon: -73.5673 } // Coordonnées exemple (Montréal)
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    statusText.textContent = "Position synchronisée avec Render !";
+                } else {
+                    statusText.textContent = "Serveur en veille (Redémarrage en cours...)";
+                }
+            })
+            .catch(error => {
+                statusText.textContent = "Erreur de connexion au serveur.";
+                console.error(error);
+            });
+        }
+
+        function startTracking() {
+            trackBtn.style.display = 'none';
+            statusText.textContent = "Recherche du signal GPS...";
+
+            if (!navigator.geolocation) {
+                statusText.textContent = "Le GPS n'est pas supporté par ce téléphone.";
+                return;
+            }
+
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            };
+
+            navigator.geolocation.watchPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    coordsText.textContent = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+                    sendLocationToServer(lat, lng);
+                },
+                (error) => {
+                    statusText.textContent = `Erreur GPS : ${error.message}`;
+                    trackBtn.style.display = 'inline-block';
+                },
+                options
+            );
+        }
+    </script>
+</body>
+</html>
