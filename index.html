@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traceur GPS</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f5f6fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .status {
+            font-weight: bold;
+            margin: 15px 0;
+            color: #7f8c8d;
+        }
+        .coordinates {
+            font-size: 1.1em;
+            color: #34495e;
+            background: #ecf0f1;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: monospace;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1em;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>Traceur GPS Connecté</h1>
+        <p id="status" class="status">Statut : Prêt à démarrer</p>
+        <div id="coordinates" class="coordinates">Lat: -- , Lng: --</div>
+        <button id="trackBtn">Activer le suivi</button>
+    </div>
+
+    <script>
+        const statusText = document.getElementById('status');
+        const coordsText = document.getElementById('coordinates');
+        const trackBtn = document.getElementById('trackBtn');
+        
+        // URL Render officielle configurée avec la bonne route d'écoute API
+        const SERVER_URL = 'https://moteur-gps-drive.onrender.com/api/location'; 
+        let watchId = null;
+
+        trackBtn.addEventListener('click', () => {
+            if (watchId !== null) {
+                // Arrêt du suivi
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+                trackBtn.innerText = "Activer le suivi";
+                statusText.innerText = "Statut : Arrêté";
+                statusText.style.color = "#7f8c8d";
+                return;
+            }
+
+            if (!navigator.geolocation) {
+                statusText.innerText = "Erreur : GPS non supporté par ce navigateur.";
+                statusText.style.color = "#e74c3c";
+                return;
+            }
+
+            statusText.innerText = "Recherche du signal GPS...";
+            trackBtn.innerText = "Arrêter le suivi";
+
+            // Lancement du suivi continu
+            watchId = navigator.geolocation.watchPosition((position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                
+                // Mise à jour de l'affichage sur l'écran
+                coordsText.innerText = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+                
+                // Envoi automatique au serveur back-end
+                sendLocationToServer(lat, lng);
+            }, (error) => {
+                statusText.innerText = `Erreur GPS : ${error.message}`;
+                statusText.style.color = "#e74c3c";
+            }, {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            });
+        });
+
+        function sendLocationToServer(lat, lng) {
+            fetch(SERVER_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    latitude: lat,
+                    longitude: lng,
+                    timestamp: new Date().toISOString()
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    statusText.innerText = "Données envoyées au serveur avec succès.";
+                    statusText.style.color = "#2ecc71"; // Vert
+                } else {
+                    statusText.innerText = `Erreur de traitement serveur (${response.status}).`;
+                    statusText.style.color = "#e74c3c"; // Rouge
+                }
+            })
+            .catch(error => {
+                statusText.innerText = "Erreur de connexion au serveur.";
+                statusText.style.color = "#e74c3c"; // Rouge
+                console.error("Détails de l'erreur réseau :", error);
+            });
+        }
+    </script>
+</body>
+</html>
