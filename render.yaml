@@ -1,9 +1,0 @@
-services:
-- type: web
-name: moteur-gps-drive
-env: node
-plan: free
-buildCommand: "npm install"
-startCommand: "npm start"
-runtime: "node"
-nodeVersion: "18"
