@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moteur GPS Drive</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            background: #007bff;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Moteur GPS Drive</h1>
+
+    <button id="start">Activer le suivi GPS</button>
+
+    <div id="status">
+        En attente du GPS…
+    </div>
+
+    <script>
+        const statusDiv = document.getElementById("status");
+        const startBtn = document.getElementById("start");
+
+        startBtn.addEventListener("click", () => {
+            if (!navigator.geolocation) {
+                statusDiv.innerHTML = "Le GPS n'est pas supporté.";
+                return;
+            }
+
+            statusDiv.innerHTML = "GPS activé…";
+
+            navigator.geolocation.watchPosition(
+                (pos) => {
+                    const data = {
+                        latitude: pos.coords.latitude,
+                        longitude: pos.coords.longitude,
+                        timestamp: Date.now()
+                    };
+
+                    statusDiv.innerHTML = `
+                        Latitude : ${data.latitude}<br>
+                        Longitude : ${data.longitude}<br>
+                        Timestamp : ${data.timestamp}
+                    `;
+
+                    fetch("/api/gps", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(data)
+                    });
+                },
+                (err) => {
+                    statusDiv.innerHTML = "Erreur GPS : " + err.message;
+                },
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 0,
+                    timeout: 5000
+                }
+            );
+        });
+    </script>
+
+</body>
+</html>
